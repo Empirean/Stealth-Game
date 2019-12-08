@@ -4,11 +4,13 @@ using UnityEngine;
 
 public class Controller : MonoBehaviour
 {
+    public System.Action OnFinish;
 
     public float speed = 7;
     public float smoothDelay = 0.1f;
     public float turnRate = 8;
 
+    bool disabled = false;
     float smoothInputMagnitude;
     float smoothMoveVelocity;
     float smoothAngle;
@@ -18,12 +20,18 @@ public class Controller : MonoBehaviour
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
+        Guard.OnGuardSpottedPlayer += Disabled;
     }
 
 
     void Update ()
     {
-        Vector3 input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
+        Vector3 input = Vector3.zero;
+        if (!disabled)
+        {
+            input = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical")).normalized;
+        }
+
         float magnitude = input.magnitude;
         smoothInputMagnitude = Mathf.SmoothDamp(smoothInputMagnitude, magnitude, ref smoothMoveVelocity, smoothDelay);
 
@@ -35,10 +43,31 @@ public class Controller : MonoBehaviour
         
 	}
 
+    private void Disabled()
+    {
+        disabled = true;
+    }
+
     private void FixedUpdate()
     {
         rb.MoveRotation(Quaternion.Euler(Vector3.up * smoothAngle));
         rb.MovePosition(rb.position + playerVelocity * Time.deltaTime);
     }
 
+    private void OnDestroy()
+    {
+        Guard.OnGuardSpottedPlayer -= Disabled;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.tag == "Finish")
+        {
+            if (OnFinish != null)
+            {
+                Disabled();
+                OnFinish();
+            }
+        }
+    }
 }

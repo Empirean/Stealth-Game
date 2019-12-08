@@ -4,12 +4,16 @@ using UnityEngine;
 
 public class Guard : MonoBehaviour {
 
+    public static event System.Action OnGuardSpottedPlayer;
+
     public Transform patrolPoints;
     public LayerMask viewMask;
     public float speed = 5;
     public float delay = .3f;
     public float turnRate = 90;
     public float viewRange = 8;
+    public float detectionDelay = 0.5f;
+    float detectionTime;
 
     public Light spotlight;
     float spotAngle;
@@ -39,12 +43,25 @@ public class Guard : MonoBehaviour {
 
         if (CanSeePlayer())
         {
-            spotlight.color = Color.red;
+            detectionTime += Time.deltaTime;
+            // spotlight.color = Color.red;
         }
         else
         {
-            spotlight.color = originalColor;
+            detectionTime -= Time.deltaTime;
+            // spotlight.color = originalColor;
         }
+        detectionTime = Mathf.Clamp(detectionTime, 0, detectionDelay);
+        spotlight.color = Color.Lerp(originalColor, Color.red, detectionTime / detectionDelay);
+
+        if (detectionTime == detectionDelay)
+        {
+            if (OnGuardSpottedPlayer != null)
+            {
+                OnGuardSpottedPlayer();
+            }
+        }
+
     }
 
     private void OnDrawGizmos()
